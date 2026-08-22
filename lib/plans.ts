@@ -17,7 +17,7 @@ export const PLANS: Plan[] = [
     id: "n8a-inicio",
     name: "Cableado",
     nivel: 1,
-    priceCOP: 48900,
+    priceCOP: 2000,
     modules: 5,
     summary: "Instalar n8n, entender el lienzo y dejar tu primer flujo corriendo solo.",
     includes: [
@@ -55,7 +55,7 @@ export const PLANS: Plan[] = [
     id: "n8a-pro",
     name: "Agentes de IA",
     nivel: 3,
-    priceCOP: 89900,
+    priceCOP: 494900,
     modules: 11,
     summary: "El nodo Agente con memoria y herramientas, y n8n corriendo en un servidor.",
     includes: [
