@@ -1,12 +1,29 @@
 import { NextResponse } from "next/server";
 import { parseReference } from "@/lib/orders";
 import { integritySignature } from "@/lib/wompi";
-import { createTransaction, getAcceptanceTokens, type PaymentMethodPayload } from "@/lib/wompi-api";
+import {
+  createTransaction,
+  ErrorPasarela,
+  getAcceptanceTokens,
+  type PaymentMethodPayload,
+} from "@/lib/wompi-api";
+import type { CodigoErrorPago } from "@/lib/payment-errors";
 
 export const runtime = "nodejs";
 
 const CURRENCY = "COP";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+// A qué status HTTP responde cada código ya clasificado, para que la
+// respuesta sea coherente con lo que pasó de verdad.
+const HTTP_POR_CODIGO: Partial<Record<CodigoErrorPago, number>> = {
+  ACCESO_BLOQUEADO: 403,
+  DEMASIADOS_INTENTOS: 429,
+  CONFIGURACION_INVALIDA: 500,
+  PASARELA_NO_DISPONIBLE: 502,
+  SIN_CONEXION: 502,
+  SOLICITUD_INVALIDA: 400,
+};
 
 interface PayBody {
   reference?: string;
@@ -85,15 +102,24 @@ export async function POST(request: Request) {
     });
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.messages.join(" ") }, { status: 422 });
+      const status = result.codigo ? (HTTP_POR_CODIGO[result.codigo] ?? 422) : 422;
+      return NextResponse.json({ error: result.messages.join(" ") }, { status });
     }
 
     return NextResponse.json({
       id: result.transaction.id,
       status: result.transaction.status,
       reference: result.transaction.reference,
+      statusMessage: result.transaction.status_message ?? null,
     });
   } catch (error) {
+    if (error instanceof ErrorPasarela) {
+      console.error("Falla de la pasarela creando la transacción", error.codigo, error.message);
+      return NextResponse.json(
+        { error: error.message },
+        { status: HTTP_POR_CODIGO[error.codigo] ?? 502 },
+      );
+    }
     console.error("Error creando la transacción", error);
     return NextResponse.json(
       { error: "No pudimos contactar la pasarela. Intenta de nuevo." },

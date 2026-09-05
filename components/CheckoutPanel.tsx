@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GlifoPuerto } from "@/components/Glifos";
 import { CORREO_CONTACTO, HORAS_DE_ENTREGA } from "@/lib/contacto";
 import { buildReference } from "@/lib/orders";
+import { clasificarRechazo } from "@/lib/payment-errors";
 import { formatCOP, type Plan } from "@/lib/plans";
 import { digitsOnly, formatCardNumber, formatExpiry, tokenizeCard } from "@/lib/wompi-client";
 
@@ -106,7 +107,8 @@ export function CheckoutPanel({ plan, onClose }: Props) {
           return;
         }
         if (data.status && ["DECLINED", "VOIDED", "ERROR"].includes(data.status)) {
-          setMensaje(data.statusMessage ?? null);
+          const clasificado = clasificarRechazo(data.statusMessage);
+          setMensaje(`${clasificado.mensaje} ${clasificado.consejo ?? ""}`.trim());
           setFase("rechazado");
           return;
         }
@@ -173,7 +175,12 @@ export function CheckoutPanel({ plan, onClose }: Props) {
         }),
       });
 
-      const data = (await res.json()) as { id?: string; status?: string; error?: string };
+      const data = (await res.json()) as {
+        id?: string;
+        status?: string;
+        statusMessage?: string | null;
+        error?: string;
+      };
 
       if (!res.ok || !data.id) {
         setError(data.error ?? "El pago no se pudo procesar.");
@@ -186,12 +193,18 @@ export function CheckoutPanel({ plan, onClose }: Props) {
         return;
       }
       if (data.status && ["DECLINED", "VOIDED", "ERROR"].includes(data.status)) {
+        const clasificado = clasificarRechazo(data.statusMessage);
+        setMensaje(`${clasificado.mensaje} ${clasificado.consejo ?? ""}`.trim());
         setFase("rechazado");
         return;
       }
       setTx(data.id);
-    } catch {
-      setError("Se cayó la conexión. Revisa tu internet y vuelve a intentar.");
+    } catch (error) {
+      setError(
+        error instanceof TypeError
+          ? "Se cayó la conexión. Revisa tu internet y vuelve a intentar."
+          : "Algo falló antes de cobrar. Vuelve a intentar.",
+      );
       setFase("form");
     }
   }

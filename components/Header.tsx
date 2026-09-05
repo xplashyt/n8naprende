@@ -1,4 +1,5 @@
 import { GlifoMarca } from "@/components/Glifos";
+import { PLANS } from "@/lib/plans";
 
 export function Header() {
   return (
@@ -17,7 +18,7 @@ export function Header() {
           className="shrink-0 border-2 border-ambar px-3 py-1.5 font-display text-xs font-bold uppercase tracking-widest text-ambar"
         >
           <span className="sm:hidden">Niveles</span>
-          <span className="hidden sm:inline">Ver los tres niveles</span>
+          <span className="hidden sm:inline">Ver los {PLANS.length} niveles</span>
         </a>
       </div>
     </header>

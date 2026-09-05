@@ -8,9 +8,12 @@ interface Props {
   onElegir: (plan: Plan) => void;
 }
 
+// Por rangos, no por igualdad exacta: el catálogo tiene niveles intermedios
+// (1.5, 2.5...) entre los tres niveles principales, y todos deben caer en el
+// grupo de ícono correcto.
 function glifoDelNivel(nivel: number) {
-  if (nivel <= 1) return GlifoNodo;
-  if (nivel === 2) return GlifoRama;
+  if (nivel < 2) return GlifoNodo;
+  if (nivel < 3) return GlifoRama;
   return GlifoAgente;
 }
 
